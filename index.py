@@ -1,22 +1,39 @@
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from utils import *
+from utils_db import *
+from peewee import *
+from File_Class import *
 
-list_link = []
-list_url_img = []
-list_content_text = []
-link = 'https://twitter.com/OKEx?s=20'
+# File_Interact1 = File_Interact('link_twitter.txt')
+File_Interact1 = File_Interact('text.txt')
+list_tw =File_Interact1.read_file_list()
 
 driver = webdriver.Chrome(executable_path="./chromedriver.exe")
 
-# nb_followers nb_following
-err1,nb_followers,nb_following = get_info_twitter(driver,link)
+for link in list_tw:
+    list_link_post = []
+    list_url_img = []
+    list_content_text = []
+    list_channel_id = []
+    # get 5 post
+    err,list_link_post,list_url_img,list_content_text = get_info_post(driver,link)
 
+    # Chanel_ID
+    channel_id = get_channel_id(link)
+    # list_channel_id.append(channel_id)
 
-# Chanel_ID
-chanel_id = get_channel_id(link)
+    data_source = [
+        {
+            'channel_id' : channel_id,
+            'link_post' : list_link_post[i],
+            'content_text' : list_content_text[i],
+            'url_image' : list_url_img[i]
 
-# Get info post
-err2,list_link,list_url_img,list_content_text = get_info_post(driver,link)
+        }
+        for i in range(0,5)
+        # for i in range(len(list_link_post))
+    ]
+    for batch in chunked(data_source,10000):
+        Post.insert_many(batch).execute()
+
+driver.quit()
